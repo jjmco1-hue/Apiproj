@@ -6,8 +6,37 @@ export const pruebaPacientes = (req, res) => {
 
 export const getPacientes = async (req, res) => {
   try {
+
+    // Si es un médico, verificar su certificación
+    if (req.user.rol_id === 2) {
+
+      const [estado] = await conmysql.query(
+        `
+        SELECT estado
+        FROM solicitudes_certificacion
+        WHERE usuario_id = ?
+        ORDER BY solicitud_id DESC
+        LIMIT 1
+        `,
+        [req.user.usuario_id]
+      );
+
+      if (estado.length === 0) {
+        return res.status(403).json({
+          message: "No existe una solicitud de certificación."
+        });
+      }
+
+      if (estado[0].estado !== "aprobada") {
+        return res.status(403).json({
+          message: "Su certificación médica aún no ha sido aprobada."
+        });
+      }
+
+    }
+
     const [rows] = await conmysql.query(`
-      SELECT 
+      SELECT
         u.usuario_id,
         u.nombre,
         u.correo,
@@ -16,7 +45,8 @@ export const getPacientes = async (req, res) => {
         p.estatura,
         p.edad
       FROM usuarios u
-      INNER JOIN pacientes p ON p.usuario_id = u.usuario_id
+      INNER JOIN pacientes p
+        ON p.usuario_id = u.usuario_id
       WHERE u.rol_id = 3
     `);
 
@@ -27,10 +57,11 @@ export const getPacientes = async (req, res) => {
 
   } catch (error) {
     console.error("Error en getPacientes:", error);
-    res.status(500).json({ message: "Error en el servidor" });
+    res.status(500).json({
+      message: "Error en el servidor"
+    });
   }
 };
-
 export const getPacientexId = async (req, res) => {
   try {
     const [rows] = await conmysql.query(`

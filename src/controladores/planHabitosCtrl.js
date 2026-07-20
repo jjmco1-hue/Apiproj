@@ -28,26 +28,80 @@ export const getPlanesHabitos = async (req, res) => {
 
 export const getPlanesPorUsuario = async (req, res) => {
   try {
+
     const { usuario_id } = req.params;
 
+
     const [result] = await conmysql.query(
-      `SELECT ph.*, h.nombre_habito
-       FROM plan_habitos ph
-       INNER JOIN registro_habitos h ON h.habito_id = ph.habito_id
-       WHERE ph.usuario_id = ?`,
+      `
+      SELECT
+
+        ph.plan_habito_id,
+        ph.usuario_id,
+        ph.habito_id,
+
+        h.nombre_habito,
+
+        ph.frecuencia,
+        ph.meta,
+        ph.estado,
+
+        rc.registro_id,
+        rc.fecha,
+        rc.cumplido,
+        rc.nota
+
+
+      FROM plan_habitos ph
+
+
+      INNER JOIN registro_habitos h
+
+      ON h.habito_id = ph.habito_id
+
+
+      LEFT JOIN registro_cumplimiento rc
+
+      ON rc.plan_habito_id = ph.plan_habito_id
+
+      AND rc.fecha = CURDATE()
+
+
+      WHERE ph.usuario_id = ?
+
+
+      ORDER BY ph.plan_habito_id ASC
+
+      `,
       [usuario_id]
     );
 
+
     res.json({
+
       cant: result.length,
-      data: result,
+
+      data: result
+
     });
+
+
   } catch (error) {
-    console.error("Error en getPlanesPorUsuario:", error);
-    return res.status(500).json({ message: "Error en el servidor" });
+
+    console.error(
+      "Error en getPlanesPorUsuario:",
+      error
+    );
+
+
+    return res.status(500).json({
+
+      message:"Error en el servidor"
+
+    });
+
   }
 };
-
 export const getPlanHabitoxId = async (req, res) => {
   try {
     const [result] = await conmysql.query(

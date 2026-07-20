@@ -154,39 +154,62 @@ export const putSolicitud = async (req, res) => {
       }
     }
 
-    const [result] = await conmysql.query(
-      `UPDATE solicitudes_certificacion
-       SET estado = ?,
-           fecha_revision = NOW(),
-           revisado_por = ?,
-           comentarios_revision = ?
-       WHERE solicitud_id = ?`,
-      [estado, adminId, comentarios_revision || null, id]
-    );
+   const [result] = await conmysql.query(
+  `UPDATE solicitudes_certificacion
+   SET estado = ?,
+       fecha_revision = NOW(),
+       revisado_por = ?,
+       comentarios_revision = ?
+   WHERE solicitud_id = ?`,
+  [estado, adminId, comentarios_revision || null, id]
+);
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "Solicitud no encontrada" });
-    }
+if (result.affectedRows === 0) {
+  return res.status(404).json({ message: "Solicitud no encontrada" });
+}
 
-    if (estado === "aprobada" && adminId) {
-      await conmysql.query(
-        `UPDATE medicos 
-         SET certificado_por = ?
-         WHERE usuario_id = ?`,
-        [adminId, currentRows[0].usuario_id]
-      );
-    }
+// ===============================
+// SI LA SOLICITUD ES APROBADA
+// ===============================
+if (estado === "aprobada" && adminId) {
 
-    const [fila] = await conmysql.query(
-      "SELECT * FROM solicitudes_certificacion WHERE solicitud_id = ?",
-      [id]
-    );
+  await conmysql.query(
+    `UPDATE medicos
+     SET
+        certificado_por = ?,
+        estado_certificacion = 'aprobada'
+     WHERE usuario_id = ?`,
+    [adminId, currentRows[0].usuario_id]
+  );
 
-    res.json(fila[0]);
-  } catch (error) {
-    console.error("Error en putSolicitud:", error);
-    return res.status(500).json({ message: "Error en el servidor" });
-  }
+}
+
+// ===============================
+// SI LA SOLICITUD ES RECHAZADA
+// ===============================
+if (estado === "rechazada") {
+
+  await conmysql.query(
+    `UPDATE medicos
+     SET
+        estado_certificacion = 'rechazada'
+     WHERE usuario_id = ?`,
+    [currentRows[0].usuario_id]
+  );
+
+}
+
+const [fila] = await conmysql.query(
+  "SELECT * FROM solicitudes_certificacion WHERE solicitud_id = ?",
+  [id]
+);
+
+res.json(fila[0]);
+
+} catch (error) {
+  console.error("Error en putSolicitud:", error);
+  return res.status(500).json({ message: "Error en el servidor" });
+}
 };
 
 export const deleteSolicitud = async (req, res) => {

@@ -78,34 +78,64 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: "Contraseña incorrecta" });
     }
 
-    const [userData] = await conmysql.query(
-      "SELECT * FROM usuarios WHERE login_id = ?",
-      [loginData.login_id]
-    );
+const [userData] = await conmysql.query(
+`
+SELECT
+    u.usuario_id,
+    u.login_id,
+    u.nombre,
+    u.correo,
+    u.rol_id,
 
+    m.medico_id,
+    m.numero_licencia,
+    m.especialidad,
+    m.institucion,
+    m.anios_experiencia,
+
+    sc.estado AS estado_certificacion
+
+FROM usuarios u
+
+LEFT JOIN medicos m
+ON u.usuario_id = m.usuario_id
+
+LEFT JOIN solicitudes_certificacion sc
+ON u.usuario_id = sc.usuario_id
+
+WHERE u.login_id = ?
+
+ORDER BY sc.solicitud_id DESC
+LIMIT 1
+
+`,
+[loginData.login_id]
+);
     if (userData.length === 0) {
       return res
         .status(404)
         .json({ message: "No se encontró información del usuario" });
     }
+const user = userData[0];
 
-    const user = userData[0];
+const token = jwt.sign(
+  {
+    usuario_id: user.usuario_id,
+    nombre: user.nombre,
+    rol_id: user.rol_id,
+    estado_certificacion: user.estado_certificacion
+  },
+  JWT_SECRET,
+  { 
+    expiresIn: "2h" 
+  }
+);
 
-    const token = jwt.sign(
-      {
-        usuario_id: user.usuario_id,
-        nombre: user.nombre,
-        rol_id: user.rol_id,
-      },
-      JWT_SECRET,
-      { expiresIn: "2h" }
-    );
-
-    return res.json({
-      message: "Login exitoso",
-      token,
-      usuario: user,
-    });
+return res.json({
+  message: "Login exitoso",
+  token,
+  usuario: user,
+});
   } catch (error) {
     console.error("Error en login:", error);
     return res.status(500).json({ message: "Error en el servidor" });

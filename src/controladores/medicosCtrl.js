@@ -181,6 +181,52 @@ export const putMedico = async (req, res) => {
   }
 };
 
+export const getPerfilMedico = async (req,res)=>{
+  try{
+
+    const usuario_id = req.user.usuario_id;
+
+    const [result] = await conmysql.query(
+      `
+      SELECT
+        u.usuario_id,
+        u.nombre,
+        u.correo,
+        m.especialidad,
+        m.numero_licencia,
+        m.institucion,
+        m.anios_experiencia,
+        m.estado_certificacion
+      FROM usuarios u
+      INNER JOIN medicos m
+        ON u.usuario_id = m.usuario_id
+      WHERE u.usuario_id = ?
+      `,
+      [usuario_id]
+    );
+
+
+    if(result.length===0){
+      return res.status(404).json({
+        message:"Médico no encontrado"
+      });
+    }
+
+
+    res.json(result[0]);
+
+
+  }catch(error){
+
+    console.error("Error perfil medico:",error);
+
+    res.status(500).json({
+      message:"Error del servidor"
+    });
+
+  }
+};
+
 export const deleteMedico = async (req, res) => {
   try {
     const { id } = req.params;
