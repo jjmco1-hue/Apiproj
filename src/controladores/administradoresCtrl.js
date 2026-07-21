@@ -136,9 +136,10 @@ export const deleteAdministrador = async (req, res) => {
 
 export const principal = async (req, res) => {
   try {
-    const [[medicos]] = await conmysql.query(
-      `SELECT COUNT(*) AS total FROM usuarios WHERE rol_id = 2`
-    );
+    const [[medicos]] = await conmysql.query(`
+SELECT COUNT(*) AS total
+FROM medicos
+`);
 
     const [[pacientes]] = await conmysql.query(
       `SELECT COUNT(*) AS total FROM usuarios WHERE rol_id = 3`
