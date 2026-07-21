@@ -269,9 +269,19 @@ export const deleteMedico = async (req, res) => {
     return res.json({
       message: "Médico eliminado correctamente (medico + usuario + login)"
     });
+} catch (error) {
 
-  } catch (error) {
-    console.error("Error en deleteMedico:", error);
-    return res.status(500).json({ message: "Error en el servidor" });
-  }
+  console.error("========== ERROR DELETE ==========");
+  console.error(error);
+  console.error("Mensaje:", error.message);
+  console.error("SQL:", error.sqlMessage);
+  console.error("Código:", error.code);
+
+  return res.status(500).json({
+    message: error.message,
+    sql: error.sqlMessage,
+    code: error.code
+  });
+
+}
 };
