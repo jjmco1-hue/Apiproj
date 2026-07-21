@@ -116,7 +116,137 @@ export const updatePerfilPaciente = async (req, res) => {
     res.status(500).json({ message: "Error al actualizar" });
   }
 };
+export const crearPaciente = async (req, res) => {
 
+  const conexion = await conmysql.getConnection();
+
+  try {
+
+    await conexion.beginTransaction();
+
+
+    const {
+      usuario,
+      password,
+      nombre,
+      correo,
+      peso,
+      estatura,
+      edad
+    } = req.body;
+
+
+    // Validación
+    if (
+      !usuario ||
+      !password ||
+      !nombre ||
+      !correo ||
+      !peso ||
+      !estatura ||
+      !edad
+    ) {
+
+      return res.status(400).json({
+        message:"Complete todos los datos"
+      });
+
+    }
+
+
+    // 1. Crear login
+    const [login] = await conexion.query(
+      `
+      INSERT INTO login(usuario,password)
+      VALUES (?,?)
+      `,
+      [
+        usuario,
+        password
+      ]
+    );
+
+
+    const login_id = login.insertId;
+
+
+
+    // 2. Crear usuario
+    const [user] = await conexion.query(
+      `
+      INSERT INTO usuarios
+      (
+        login_id,
+        rol_id,
+        nombre,
+        correo
+      )
+      VALUES (?,?,?,?)
+      `,
+      [
+        login_id,
+        3,
+        nombre,
+        correo
+      ]
+    );
+
+
+    const usuario_id = user.insertId;
+
+
+
+    // 3. Crear paciente
+    await conexion.query(
+      `
+      INSERT INTO pacientes
+      (
+        usuario_id,
+        peso,
+        estatura,
+        edad
+      )
+      VALUES (?,?,?,?)
+      `,
+      [
+        usuario_id,
+        peso,
+        estatura,
+        edad
+      ]
+    );
+
+
+
+    await conexion.commit();
+
+
+    res.json({
+      message:"Paciente registrado correctamente",
+      usuario_id
+    });
+
+
+
+  } catch(error){
+
+    await conexion.rollback();
+
+    console.error(error);
+
+
+    res.status(500).json({
+      message:error.message
+    });
+
+
+  } finally {
+
+    conexion.release();
+
+  }
+
+};
 export const deletePaciente = async (req, res) => {
   try {
     const usuarioId = req.params.id;
